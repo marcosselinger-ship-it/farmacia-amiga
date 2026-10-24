@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FAF7F2;
+  --foreground: #2B2520;
+}
+
+html { font-family: 'Nunito', system-ui, sans-serif; }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Elementos grandes e legíveis para idosos */
+input, button, textarea, select {
+  font-size: 1rem;
+  min-height: 48px;
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid #F97A5A;
+  outline-offset: 2px;
+}
