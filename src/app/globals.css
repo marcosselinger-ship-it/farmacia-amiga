@@ -14,7 +14,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Elementos grandes e legíveis para idosos */
 input, button, textarea, select {
   font-size: 1rem;
   min-height: 48px;

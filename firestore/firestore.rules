@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() { return request.auth != null; }
+    function userRole() { return request.auth.token.role; }
+    function userPharmacyId() { return request.auth.token.pharmacy_id; }
+    function userId() { return request.auth.uid; }
+    function isSuperadmin() { return isAuthenticated() && userRole() == 'superadmin'; }
+    function isAdminFarmacia() { return isAuthenticated() && userRole() == 'admin_farmacia'; }
+    function isFarmaceutico() { return isAuthenticated() && userRole() == 'farmaceutico'; }
+    function isPaciente() { return isAuthenticated() && userRole() == 'paciente'; }
+    function belongsToSamePharmacy(pharmacyId) { return isAuthenticated() && userPharmacyId() == pharmacyId; }
+    function pharmacyIdNotChanged() { return request.resource.data.pharmacy_id == resource.data.pharmacy_id; }
+
+    match /{document=**} { allow read, write: if false; }
+
+    match /users/{uid} {
+      allow read: if isAuthenticated() && userId() == uid;
+      allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow read: if isSuperadmin();
+      allow update: if isAuthenticated() && userId() == uid && request.resource.data.pharmacy_id == resource.data.pharmacy_id && request.resource.data.role == resource.data.role;
+      allow create, delete: if false;
+    }
+
+    match /pharmacies/{pharmacyId} {
+      allow read: if (isAdminFarmacia() || isFarmaceutico() || isPaciente()) && belongsToSamePharmacy(pharmacyId);
+      allow read: if isSuperadmin();
+      allow update: if isAdminFarmacia() && belongsToSamePharmacy(pharmacyId) && request.resource.data.id == resource.data.id;
+      allow create, delete: if false;
+    }
+
+    match /patients/{patientId} {
+      allow read: if isPaciente() && userId() == resource.data.user_id;
+      allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow read: if isSuperadmin();
+      allow update: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id) && pharmacyIdNotChanged();
+      allow update: if isPaciente() && userId() == resource.data.user_id && pharmacyIdNotChanged();
+      allow create, delete: if false;
+    }
+
+    match /medications/{medicationId} {
+      allow read: if isPaciente() && userId() == resource.data.patient_user_id;
+      allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow create, update: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(request.resource.data.pharmacy_id);
+      allow delete: if false;
+    }
+
+    match /medication_schedules/{scheduleId} {
+      allow read: if isPaciente() && userId() == resource.data.patient_user_id;
+      allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow create, update: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(request.resource.data.pharmacy_id);
+      allow delete: if false;
+    }
+
+    match /chats/{chatId} {
+      allow read: if isPaciente() && resource.data.patient_user_id == userId();
+      allow read: if (isFarmaceutico() || isAdminFarmacia()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow create, update, delete: if false;
+      match /messages/{messageId} {
+        allow read: if (isPaciente() && get(/databases/$(database)/documents/chats/$(chatId)).data.patient_user_id == userId()) || ((isFarmaceutico() || isAdminFarmacia()) && belongsToSamePharmacy(get(/databases/$(database)/documents/chats/$(chatId)).data.pharmacy_id));
+        allow create: if isAuthenticated() && request.resource.data.sender_uid == userId() && ((isPaciente() && get(/databases/$(database)/documents/chats/$(chatId)).data.patient_user_id == userId()) || ((isFarmaceutico() || isAdminFarmacia()) && belongsToSamePharmacy(get(/databases/$(database)/documents/chats/$(chatId)).data.pharmacy_id)));
+        allow update, delete: if false;
+      }
+    }
+
+    match /credit_wallets/{walletId} {
+      allow read: if isAuthenticated() && resource.data.user_id == userId();
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow write: if false;
+    }
+
+    match /credit_transactions/{txId} {
+      allow read: if isAuthenticated() && resource.data.user_id == userId();
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow create, update, delete: if false;
+    }
+
+    match /revenue_ledger/{entryId} {
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow read: if isSuperadmin();
+      allow write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && resource.data.user_id == userId();
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow write: if false;
+    }
+
+    match /subscriptions/{pharmacyId} {
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(pharmacyId);
+      allow read: if isSuperadmin();
+      allow write: if false;
+    }
+
+    match /consents/{consentId} {
+      allow read: if isAuthenticated() && resource.data.user_id == userId();
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow create: if isAuthenticated() && request.resource.data.user_id == userId() && request.resource.data.timestamp == request.time;
+      allow update, delete: if false;
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow read: if isSuperadmin();
+      allow write: if false;
+    }
+  }
+}
