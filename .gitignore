@@ -10,3 +10,5 @@ out
 functions/node_modules
 functions/lib
 .firebase
+next-env.d.ts
+*.tsbuildinfo
