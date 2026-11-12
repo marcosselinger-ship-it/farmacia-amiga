@@ -40,11 +40,23 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // Escrita só pelo servidor (/api/medications), que confere se o paciente é da mesma farmácia.
     match /medications/{medicationId} {
       allow read: if isPaciente() && userId() == resource.data.patient_user_id;
       allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
-      allow create, update: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(request.resource.data.pharmacy_id);
-      allow delete: if false;
+      allow write: if false;
+    }
+
+    // Doses confirmadas pelo paciente. Escrita só pelo servidor (/api/doses).
+    match /dose_logs/{logId} {
+      allow read: if isPaciente() && userId() == resource.data.patient_user_id;
+      allow read: if (isAdminFarmacia() || isFarmaceutico()) && belongsToSamePharmacy(resource.data.pharmacy_id);
+      allow write: if false;
+    }
+
+    // Índice código -> farmácia. Nunca legível pelo cliente (evita enumerar farmácias).
+    match /pharmacy_codes/{code} {
+      allow read, write: if false;
     }
 
     match /medication_schedules/{scheduleId} {
@@ -98,7 +110,7 @@ service cloud.firestore {
     match /consents/{consentId} {
       allow read: if isAuthenticated() && resource.data.user_id == userId();
       allow read: if isAdminFarmacia() && belongsToSamePharmacy(resource.data.pharmacy_id);
-      allow create: if isAuthenticated() && request.resource.data.user_id == userId() && request.resource.data.timestamp == request.time;
+      allow create: if isAuthenticated() && request.resource.data.user_id == userId() && request.resource.data.pharmacy_id == userPharmacyId() && request.resource.data.timestamp == request.time;
       allow update, delete: if false;
     }
 
