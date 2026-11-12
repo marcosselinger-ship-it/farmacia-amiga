@@ -52,9 +52,12 @@ export const onUserCreated = onDocumentCreated(
     if (!snapshot) return;
     const data = snapshot.data();
     const uid = event.params.uid;
-    const claims: Record<string, string> = { role: data.role || "paciente" };
-    if (data.pharmacy_id) claims.pharmacy_id = data.pharmacy_id;
+    // users/{uid} só é criado pelo servidor (/api/signup). Mesmo assim, este gatilho nunca
+    // concede superadmin/farmaceutico: esses papéis só via setUserClaims (superadmin).
+    const role = data.role === "admin_farmacia" && data.pharmacy_id === uid ? "admin_farmacia" : "paciente";
+    const claims: Record<string, string> = { role };
+    if (typeof data.pharmacy_id === "string") claims.pharmacy_id = data.pharmacy_id;
     await admin.auth().setCustomUserClaims(uid, claims);
-    console.log(`Claims setados para ${uid}:`, claims);
+    console.log(`Claims setados para ${uid}: role=${role}`);
   }
 );
