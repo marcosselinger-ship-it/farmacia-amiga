@@ -40,8 +40,8 @@ export function ConsentCheckboxes({ onChange }: Props) {
         <span className="text-sm text-gray-800">{CONSENT_TEXTS.dados_saude}</span>
       </label>
       <label className="flex items-start gap-2 cursor-pointer">
-        <input type="checkbox" checked={state.comunicacao} onChange={(e) => update("comunicacao", e.target.checked)} className="mt-1" required />
-        <span className="text-sm text-gray-800">{CONSENT_TEXTS.comunicacao}</span>
+        <input type="checkbox" checked={state.comunicacao} onChange={(e) => update("comunicacao", e.target.checked)} className="mt-1" />
+        <span className="text-sm text-gray-800">{CONSENT_TEXTS.comunicacao} <em className="text-gray-500">(opcional)</em></span>
       </label>
       <label className="flex items-start gap-2 cursor-pointer">
         <input type="checkbox" checked={state.politica} onChange={(e) => update("politica", e.target.checked)} className="mt-1" required />
